@@ -318,9 +318,18 @@ class parseArgs():
 
 		print("""
 	Arguments:
-		-p,--popmap	: Path to tab-delimited population map
+		INPUT FILES [REQUIRED]
+		-i,--input	: Input file as PHYLIP
+			-or-
+		-f,--fasta	: optionally input your data as FASTA
+		-p,--popmap	: Tab-delimited population map
+
+		PARAMETERS [OPTIONAL]
 		-o,--out	: Output file name <default = out.nex>
-		-n,--nohet	: Randomly sample one allele from all heterozygous sites
+		-s,--sample	: Number of alleles to sample [default=1]
+		-N,--maxN	: Maximum proportion of globally missing data allowed to drop a SNP [default=0.5]
+		-n,--popN	: Maximum proportion of Ns within pop to drop SNP [default=0.5]
+		-x,--exclude	: List of samples or pops to exclude (format: -x "Pop1,Pop2,Sample4...")
 		-h,--help	: Displays help menu
 
 """)
