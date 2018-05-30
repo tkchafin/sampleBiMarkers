@@ -14,15 +14,37 @@ def main():
 
 	seqs = dict()
 	if params.phylip:
+		print("Parsing phylip file...")
 		#Get sequences as dict of lists
 		seqs = aln.readPhylip(params.phylip)
 	elif params.fasta:
+		print("Parsing fasta file...")
 		seqs = aln.readFastaAlign(params.fasta)
 	else:
 		print("No input provided.")
 		sys.exit(1)
 
-	
+	pop_assign = dict()
+	#parse popmap file for dictionary of sample assignments
+	if params.popmap:
+		print("Parsing popmap file...")
+		pop_assign = aln.parsePopmap(params.popmap)
+	else:
+		print("ERROR: Popmap file must be provided.")
+		sys.exit(1)
+
+	if seqs and pop_assign:
+
+		#Make dict of dicts that splits by population, only retaining pops/samples from the popmap.
+		#Remove 'excluded' populations
+		#Make 2D list to remove columns failing the globalN filter
+		#For each pop dict, make 2D list to remove columns failing popN filter
+		#Delete failed columns from master 2D dict
+		#Finally, sample alleles from pops. 
+
+	else:
+		print("Oops! Something went wrong reading alignment or popmap file! Sorry this error message isn't more informative! >:)")
+		sys.exit(1)
 
 	# #get list of columns and list of samplenames
 	# alen = getSeqLen(seqs)
@@ -70,24 +92,27 @@ def main():
 
 
 
-
-
-
 #Object to parse command-line arguments
 class parseArgs():
 	def __init__(self):
 		#Define options
 		try:
-			options, remainder = getopt.getopt(sys.argv[1:], 'p:ho:n', \
-			["phylip=","phy=","out=","nohet"])
+			options, remainder = getopt.getopt(sys.argv[1:], 'f:i:ho:dp:s:N:n:', \
+			["input=","phylip=","phy=","out=","nohet","fasta=","popmap=","maxN=","popN="])
 		except getopt.GetoptError as err:
 			print(err)
 			self.display_help("\nExiting because getopt returned non-zero exit status.")
 		#Default values for params
 		#Input params
 		self.phylip=None
+		self.fasta=None
+		self.popmap=None
 		self.out="out.nex"
 		self.nohet=False
+		self.sample=1
+		self.globalN=0.5
+		self.popN=0.5
+		self.exclude = list()
 
 		#First pass to see if help menu was called
 		for o, a in options:
@@ -100,20 +125,34 @@ class parseArgs():
 			arg = arg.strip()
 			opt = opt.replace("-","")
 			#print(opt,arg)
-			if opt in ('p', 'phylip', 'phy'):
+			if opt in ('i', 'phylip', 'input','phy'):
 				self.phylip = arg
+			elif opt in ('f', 'fasta'):
+				self.fasta = arg
+			elif opt in ('p', 'popmap'):
+				self.popmap = arg
 			elif opt in ('h', 'help'):
 				pass
+			elif opt in ('s', 'sample'):
+				self.sample = int(arg)
 			elif opt in ('o','out'):
 				self.out = arg
-			elif opt in ('n','nohet'):
+			elif opt in ('d','nohet'):
 				self.nohet=True
+			elif opt in ('N', 'maxN'):
+				self.globalN = float(arg)
+			elif opt in ('n', 'popN'):
+				self.popN = float(arg)
+			elif opt in ('x', 'exclude'):
+				self.exclude = arg.split(",")
 			else:
 				assert False, "Unhandled option %r"%opt
 
 		#Check manditory options are set
-		if not self.phylip:
-			self.display_help("Error: Missing required phylip file (-p, --phylip)")
+		if not self.phylip and not self.fasta:
+			self.display_help("Error: Missing required alignment file (--fasta or --input)")
+		if not self.popmap:
+			self.display_help("Error: Missing required popmap file (-p, --popmap)")
 
 
 	def display_help(self, message=None):
