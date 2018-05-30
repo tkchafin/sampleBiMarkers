@@ -63,10 +63,59 @@ def main():
 		#Capture samples for each pop in a dict of dicts
 		#Note that this removes samples for which we have data but no pop assignment
 		for assigned in pop_assign:
-			pass
+			if pop_assign[assigned] in pops:
+				pops[pop_assign[assigned]][assigned] = seqs[assigned]
+
+		#debugging print
+		# for pop in pops.keys():
+		# 	print("\n",pop)
+		# 	for ind in pops[pop]:
+		# 		print(ind, len(pops[pop][ind]), "nucleotides")
 
 		#Make 2D list to remove columns failing the globalN filter
+		bad_columns = list() #list of column numbers to delete
+
 		#For each pop dict, make 2D list to remove columns failing popN filter
+		alen = seq.getSeqLen(seqs)
+		columns = [[]for i in range(alen)] #2D array of global data
+		for pop, data in pops.items():
+			for sample, sequence in data.items():
+				for i, nuc in enumerate(sequence):
+					columns[i].append(nuc)
+
+		#Remove columns with >globalN ambiguous bases, or those which are non-biallelic
+		print("Removing non-biallelic columns...")
+		if not params.keepG:
+			print("Checking N content (counting gaps as missing data)...")
+		else:
+			print("Checking N content (NOT counting gaps as missing data)...")
+		for i, col in enumerate(columns):
+			if not seq.isBiallelic(col):
+				bad_columns.append(i)
+			if not params.keepG:
+				if seq.checkNGcontent(col, params.globalN): #counts gaps as Ns
+					bad_columns.append(i)
+			else:
+				if seq.checkNcontent(col, params.globalN): #counts gaps as Ns
+					bad_columns.append(i)
+		bad_columns=sorted(set(bad_columns))
+
+		#Now get bad columns WITHIN pops for localN failing sites
+		for pop in pops:
+			columns = [[]for i in range(alen)]
+			for sample, sequence in pops[pop]:
+				for i, nuc in enumerate(sequence):
+					columns[i].append(nuc)
+			for i, col in enumerate(columns):
+				if not params.keepG:
+					if seq.checkNGcontent(col, params.globalN): #counts gaps as Ns
+						bad_columns.append(i)
+				else:
+					if seq.checkNcontent(col, params.globalN): #counts gaps as Ns
+						bad_columns.append(i)
+		#Re-sort and unique the bad_columns list
+		bad_columns=sorted(set(bad_columns))
+
 		#Delete failed columns from master 2D dict
 		#Finally, sample alleles from pops.
 
@@ -125,8 +174,9 @@ class parseArgs():
 	def __init__(self):
 		#Define options
 		try:
-			options, remainder = getopt.getopt(sys.argv[1:], 'f:i:ho:dp:s:N:n:x:I:', \
-			["input=","phylip=","phy=","out=","nohet","fasta=","popmap=","maxN=","popN=","exclude=","include="])
+			options, remainder = getopt.getopt(sys.argv[1:], 'f:i:ho:dp:s:N:n:x:I:agG', \
+			["input=","phylip=","phy=","out=","nohet","fasta=","popmap=","maxN=",
+			"popN=","exclude=","include=", "allowG", "allowN", "keepG"])
 		except getopt.GetoptError as err:
 			print(err)
 			self.display_help("\nExiting because getopt returned non-zero exit status.")
@@ -142,6 +192,11 @@ class parseArgs():
 		self.popN=0.5
 		self.exclude = list()
 		self.include = list()
+
+		#booleans
+		self.allowN=False
+		self.allowG=False
+		self.keepG=False
 
 		#First pass to see if help menu was called
 		for o, a in options:
@@ -176,6 +231,12 @@ class parseArgs():
 				self.exclude = arg.split(",")
 			elif opt in ('I','include'):
 				self.include = arg.split(",")
+			elif opt in ("a", "allowN"):
+				self.allowN=True
+			elif opt in ("g", "allowG"):
+				self.allowG=True
+			elif opt in ("G", "keepG"):
+				self.keepG=True
 			else:
 				assert False, "Unhandled option %r"%opt
 
@@ -209,7 +270,12 @@ class parseArgs():
 		-n,--popN	: Maximum proportion of Ns within pop to drop SNP [default=0.5]
 		-x,--exclude	: List of pops to exclude (format: -x "Pop1,Pop2,Sample4...")
 		-I,--include	: List of pops to include (removing all others)
+		-a,--allowN		: Toggle on to allow N to be sampled
+		-g,--allowG		: Toggle on to allow gap characters to be sampled
+		-G,--keepG		: Toggle on to NOT treat gap characters as missing data for -N, -n options
 		-h,--help	: Displays help menu
+
+		Note that this script will not sample Ns or gap characters by default. Both are treated as missing data. Filter accordingly.
 
 """)
 		sys.exit()
