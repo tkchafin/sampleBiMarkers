@@ -8,6 +8,11 @@ import operator
 import random
 import aln_file_tools as aln
 import seq_tools as seq
+import collections
+
+"""NOTE: When writing this, I prioritized speed of writing the code (e.g. minimizing time
+to getting the input file I wanted), and so it is very inefficient and does not
+implement robust error handling. Sorry. -TKC"""
 
 def main():
 	params = parseArgs()
@@ -46,11 +51,12 @@ def main():
 
 		#Remove pops listed as excluded
 		if params.exclude:
+			print("Excluding populations:", ", ".join(params.exclude))
 			for exc in params.exclude:
 				if exc in pops:
 					del pops[exc]
 		if params.include:
-			print('removing by inclusion')
+			print("Only keeping populations:", ", ".join(params.include))
 			for pop in list(pops):
 				if pop not in params.include:
 					del pops[pop]
@@ -62,10 +68,11 @@ def main():
 
 		#Capture samples for each pop in a dict of dicts
 		#Note that this removes samples for which we have data but no pop assignment
+		alen = seq.getSeqLen(seqs)
 		for assigned in pop_assign:
 			if pop_assign[assigned] in pops:
 				pops[pop_assign[assigned]][assigned] = seqs[assigned]
-
+		seqs.clear()
 		#debugging print
 		# for pop in pops.keys():
 		# 	print("\n",pop)
@@ -76,7 +83,7 @@ def main():
 		bad_columns = list() #list of column numbers to delete
 
 		#For each pop dict, make 2D list to remove columns failing popN filter
-		alen = seq.getSeqLen(seqs)
+		print("Found",alen,"nucleotide columns in the dataset!")
 		columns = [[]for i in range(alen)] #2D array of global data
 		for pop, data in pops.items():
 			for sample, sequence in data.items():
@@ -99,11 +106,17 @@ def main():
 				if seq.checkNcontent(col, params.globalN): #counts gaps as Ns
 					bad_columns.append(i)
 		bad_columns=sorted(set(bad_columns))
+		columns.clear()
 
 		#Now get bad columns WITHIN pops for localN failing sites
-		for pop in pops:
+			#New 2D structure: dict of pops, each pop a list of lists.
+			#Lists in each pop are COLUMNS of nucleotide data
+			#From here on, we don't track which alleles belong to which individual
+			#the end product will be alleles sampled at random from each population
+		popFinal = dict()
+		for pop, data in pops.items():
 			columns = [[]for i in range(alen)]
-			for sample, sequence in pops[pop]:
+			for sample, sequence in data.items():
 				for i, nuc in enumerate(sequence):
 					columns[i].append(nuc)
 			for i, col in enumerate(columns):
@@ -113,11 +126,61 @@ def main():
 				else:
 					if seq.checkNcontent(col, params.globalN): #counts gaps as Ns
 						bad_columns.append(i)
+			popFinal[pop] = columns
 		#Re-sort and unique the bad_columns list
 		bad_columns=sorted(set(bad_columns))
+		print("Deleting",len(bad_columns),"columns!")
+		#For each pop, remove blacklisted columns
+		for pop in popFinal:
+			for col in sorted(bad_columns,reverse=True): #reverse sorted so subsequent deletes aren't thrown off
+				#print(col,":",columns[col])
+				del popFinal[pop][col]
 
-		#Delete failed columns from master 2D dict
 		#Finally, sample alleles from pops.
+		outputFinal = collections.OrderedDict()
+		outputAssign = dict()
+		for pop in popFinal:
+			for i in range(0,params.sample):
+				name=pop + "_" + str(i)
+				outputAssign[name] = pop
+				outputFinal[name] = list()
+			#print(outputAssign)
+			for nucs in popFinal[pop]:
+				#sample alleles at random, without replacement
+				sampled = seq.sampleAlleles(nucs, params.sample, params.allowN, params.allowG)
+				#check that we sampled enough alleles
+				if len(sampled) < params.sample :
+					print("Uh oh! Not enough valid alleles in pop",pop,"! Unfortunately, my developer was too lazy to write better error checking! More stringeng --maxN and --popN filtering, or sample less alleles!!")
+					sys.exit(1)
+
+				#insert alleles into outputFinal
+				for i in range(0,params.sample):
+					name=pop + "_" + str(i)
+					outputFinal[name].append(sampled[i])
+		popFinal.clear()
+
+		#Convert to numeric format...
+		outputFinal_formatted = collections.OrderedDict()
+		for ind in outputFinal:
+			print(ind,", Nucs:",outputFinal[ind][0:10])
+			outputFinal_formatted[ind] = list()
+
+		if not params.allowM:
+			print("Now applying a final check for monomorphic loci...")
+		print("Converting to numeric format...")
+		countM = 0
+		for i in range(0,seq.getSeqLen(outputFinal)):
+			this_column = list()
+			for ind in outputFinal:
+				this_column.append(outputFinal[ind][i])
+			if seq.isMonomorphic(this_column):
+				if not params.allowM:
+					continue
+			numeric = seq.nucs2numeric(this_column)
+			print(this_column)
+			print(numeric)
+			sys.exit()
+
 
 	else:
 		print("Oops! Something went wrong reading alignment or popmap file! Sorry this error message isn't more informative! >:)")
@@ -168,15 +231,14 @@ def main():
 	# dict2nexus(params.out, final_data)
 
 
-
 #Object to parse command-line arguments
 class parseArgs():
 	def __init__(self):
 		#Define options
 		try:
-			options, remainder = getopt.getopt(sys.argv[1:], 'f:i:ho:dp:s:N:n:x:I:agG', \
+			options, remainder = getopt.getopt(sys.argv[1:], 'f:i:ho:dp:s:N:n:x:I:agGm', \
 			["input=","phylip=","phy=","out=","nohet","fasta=","popmap=","maxN=",
-			"popN=","exclude=","include=", "allowG", "allowN", "keepG"])
+			"popN=","exclude=","include=", "allowG", "allowN", "keepG","allowM"])
 		except getopt.GetoptError as err:
 			print(err)
 			self.display_help("\nExiting because getopt returned non-zero exit status.")
@@ -196,7 +258,9 @@ class parseArgs():
 		#booleans
 		self.allowN=False
 		self.allowG=False
+		self.allowM=False
 		self.keepG=False
+		self.noHet=False
 
 		#First pass to see if help menu was called
 		for o, a in options:
@@ -237,6 +301,8 @@ class parseArgs():
 				self.allowG=True
 			elif opt in ("G", "keepG"):
 				self.keepG=True
+			elif opt in ("m", "allowM"):
+				self.allowM=True
 			else:
 				assert False, "Unhandled option %r"%opt
 
@@ -245,6 +311,10 @@ class parseArgs():
 			self.display_help("Error: Missing required alignment file (--fasta or --input)")
 		if not self.popmap:
 			self.display_help("Error: Missing required popmap file (-p, --popmap)")
+		if self.include and self.exclude:
+			self.display_help("Don't use both --include and --exclude.")
+		if self.sample < 1:
+			self.display_help("Error: --sample must be greater than 1.")
 
 
 	def display_help(self, message=None):
@@ -273,6 +343,9 @@ class parseArgs():
 		-a,--allowN		: Toggle on to allow N to be sampled
 		-g,--allowG		: Toggle on to allow gap characters to be sampled
 		-G,--keepG		: Toggle on to NOT treat gap characters as missing data for -N, -n options
+		-m,--allowM		: Toggle on to allow loci that are monomorphic as a consequence of random sampling
+			-When sampling a small number of alleles, it is possible to lose all variation.
+			-Use this option to turn off the monomorphic filter that is applied AFTER sampling alleles
 		-h,--help	: Displays help menu
 
 		Note that this script will not sample Ns or gap characters by default. Both are treated as missing data. Filter accordingly.
