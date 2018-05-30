@@ -65,5 +65,7 @@ SampleC	Population2
 ...
 ```
 You can control which populations are included by sampleBiMarkers using the --include or --exclude flags. For example, to sample 2 alleles each from only (and create output for) Population1, Population3, and Population4:
+
 ```./sampleBiMarkers.py -i example.input -s 2 --include Population1,Population3,Population4```
+
 Be sure that your populations are spelled correctly, and separated by commas (with NO spaces). 
