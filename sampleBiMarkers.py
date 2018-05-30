@@ -374,12 +374,12 @@ class parseArgs():
 		-s,--sample	: Number of alleles to sample [default=1]
 		-N,--maxN	: Maximum proportion of globally missing data allowed to drop a SNP [default=0.5]
 		-n,--popN	: Maximum proportion of Ns within pop to drop SNP [default=0.5]
-		-x,--exclude	: List of pops to exclude (format: -x "Pop1,Pop2,Sample4...")
-		-I,--include	: List of pops to include (removing all others)
-		-a,--allowN		: Toggle on to allow N to be sampled
-		-g,--allowG		: Toggle on to allow gap characters to be sampled
-		-G,--keepG		: Toggle on to NOT treat gap characters as missing data for -N, -n options
-		-m,--allowM		: Toggle on to allow loci that are monomorphic as a consequence of random sampling
+		-x,--exclude: List of pops to exclude (format: -x "Pop1,Pop2,Sample4...")
+		-I,--include: List of pops to include (removing all others)
+		-a,--allowN	: Toggle on to allow N to be sampled
+		-g,--allowG	: Toggle on to allow gap characters to be sampled
+		-G,--keepG	: Toggle on to NOT treat gap characters as missing data for -N, -n options
+		-m,--allowM	: Toggle on to allow loci that are monomorphic as a consequence of random sampling
 			-When sampling a small number of alleles, it is possible to lose all variation.
 			-Use this option to turn off the monomorphic filter that is applied AFTER sampling alleles
 		-h,--help	: Displays help menu
