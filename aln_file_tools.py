@@ -4,6 +4,7 @@ import re
 import sys
 import os
 import copy
+import seq_tools
 
 """Functions for parsing and manipulating sequence alignment files
 Functions by Zach Zbinden and Tyler Chafin"""
@@ -49,12 +50,12 @@ def parsePopmap(popmap):
 def dict2nexus(nex, aln):
 	with open(nex, 'w') as fh:
 		try:
-			slen = getSeqLen(aln)
+			slen = seq_tools.getSeqLen(aln)
 			header = "#NEXUS\n\nBegin data;\nDimensions ntax=" + str(len(aln)) + " nchar=" + str(slen) + ";\n"
 			header = header + "Format datatype=dna symbols=\"012\" missing=? gap=-;\nMatrix\n\n"
 			fh.write(header)
 			for seq in aln:
-				sline = str(seq) + " " + aln[seq] + "\n"
+				sline = str(seq) + " " + "".join(aln[seq]) + "\n"
 				fh.write(sline)
 			last = ";\nEnd;\n"
 			fh.write(last)
