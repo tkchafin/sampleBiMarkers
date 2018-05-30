@@ -6,6 +6,33 @@ import os
 
 """Tools for manipulating sequence data by Tyler Chafin"""
 
+#function to check if N content in list of diploid genotypes (1 element = 1 pair of alleles)
+#is greater than a given threshold
+#Returns TRUE if N+gap content is too high
+#this version treats Ns and gaps as the same
+def checkNGcontent(nucs, threshold):
+	nucs = [x.upper() for x in nucs]
+	twoN = len(nucs)*2
+	Ncontent = ((nucs.count("N")*2) + (nucs.count("-")*2))
+	#print("Ncontent is: ",float(Ncontent/twoN), ":", nucs)
+	if float(Ncontent/twoN) >= float(threshold):
+		return True
+	else:
+		return False
+
+#function to check if N content in list of diploid genotypes (1 element = 1 pair of alleles)
+#is greater than a given threshold
+#Returns TRUE if N+gap content is too high
+#this version only counts N content
+def checkNcontent(nucs, threshold):
+	nucs = [nucs.upper() for x in nucs]
+	twoN = len(nucs)*2
+	Ncontent = (nucs.count("N")*2)
+	if float(Ncontent/twoN) >= float(threshold):
+		return True
+	else:
+		return False
+
 #Function takes biallelic list of nucleotides and converts to numeric
 #0 = major allele
 #1 = minor allele
