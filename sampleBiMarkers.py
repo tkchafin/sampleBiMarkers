@@ -35,12 +35,40 @@ def main():
 
 	if seqs and pop_assign:
 
+		#Remove samples from pop_assign that do not have data
+		pop_assign = aln.cleanPopmap(pop_assign, seqs.keys())
+
 		#Make dict of dicts that splits by population, only retaining pops/samples from the popmap.
-		#Remove 'excluded' populations
+		#Get unique pop names using one of the worst python lines ever written
+		pops = dict()
+		for k in set(pop_assign.values()):
+			pops[k] = dict()
+
+		#Remove pops listed as excluded
+		if params.exclude:
+			for exc in params.exclude:
+				if exc in pops:
+					del pops[exc]
+		if params.include:
+			print('removing by inclusion')
+			for pop in list(pops):
+				if pop not in params.include:
+					del pops[pop]
+
+		#make sure we didn't throw out all populations...
+		if len(list(pops)) < 1:
+			print("Oops! No populations remaining. Check that popmap sample names match those in your data file, or that selections using --include or --exclude are correct! :)")
+			sys.exit(1)
+
+		#Capture samples for each pop in a dict of dicts
+		#Note that this removes samples for which we have data but no pop assignment
+		for assigned in pop_assign:
+			pass
+
 		#Make 2D list to remove columns failing the globalN filter
 		#For each pop dict, make 2D list to remove columns failing popN filter
 		#Delete failed columns from master 2D dict
-		#Finally, sample alleles from pops. 
+		#Finally, sample alleles from pops.
 
 	else:
 		print("Oops! Something went wrong reading alignment or popmap file! Sorry this error message isn't more informative! >:)")
@@ -97,8 +125,8 @@ class parseArgs():
 	def __init__(self):
 		#Define options
 		try:
-			options, remainder = getopt.getopt(sys.argv[1:], 'f:i:ho:dp:s:N:n:', \
-			["input=","phylip=","phy=","out=","nohet","fasta=","popmap=","maxN=","popN="])
+			options, remainder = getopt.getopt(sys.argv[1:], 'f:i:ho:dp:s:N:n:x:I:', \
+			["input=","phylip=","phy=","out=","nohet","fasta=","popmap=","maxN=","popN=","exclude=","include="])
 		except getopt.GetoptError as err:
 			print(err)
 			self.display_help("\nExiting because getopt returned non-zero exit status.")
@@ -113,6 +141,7 @@ class parseArgs():
 		self.globalN=0.5
 		self.popN=0.5
 		self.exclude = list()
+		self.include = list()
 
 		#First pass to see if help menu was called
 		for o, a in options:
@@ -145,6 +174,8 @@ class parseArgs():
 				self.popN = float(arg)
 			elif opt in ('x', 'exclude'):
 				self.exclude = arg.split(",")
+			elif opt in ('I','include'):
+				self.include = arg.split(",")
 			else:
 				assert False, "Unhandled option %r"%opt
 
@@ -176,7 +207,8 @@ class parseArgs():
 		-s,--sample	: Number of alleles to sample [default=1]
 		-N,--maxN	: Maximum proportion of globally missing data allowed to drop a SNP [default=0.5]
 		-n,--popN	: Maximum proportion of Ns within pop to drop SNP [default=0.5]
-		-x,--exclude	: List of samples or pops to exclude (format: -x "Pop1,Pop2,Sample4...")
+		-x,--exclude	: List of pops to exclude (format: -x "Pop1,Pop2,Sample4...")
+		-I,--include	: List of pops to include (removing all others)
 		-h,--help	: Displays help menu
 
 """)
