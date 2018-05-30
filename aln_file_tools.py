@@ -7,7 +7,31 @@ import os
 """Functions for parsing and manipulating sequence alignment files
 Functions by Zach Zbinden and Tyler Chafin"""
 
+#function reads a tab-delimited popmap file and return dictionary of assignments
+def parsePopmap(popmap):
+	ret = dict()
+	if os.path.exists(popmap):
+		with open(popmap, 'r') as fh:
+			try:
+				contig = ""
+				seq = ""
+				for line in fh:
+					line = line.strip()
+					if not line:
+						continue
+					else:
+						stuff = line.split()
+						ret[stuff[0]] = stuff[1]
+				return(ret)
+			except IOError:
+				print("Could not read file ",pairs)
+				sys.exit(1)
+			finally:
+				fh.close()
+	else:
+		raise FileNotFoundError("File %s not found!"%popmap)
 
+		
 #Function to write an alignment as DICT to NEXUS
 def dict2nexus(nex, aln):
 	with open(nex, 'w') as fh:
