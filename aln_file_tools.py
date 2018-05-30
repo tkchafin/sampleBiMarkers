@@ -3,9 +3,22 @@
 import re
 import sys
 import os
+import copy
 
 """Functions for parsing and manipulating sequence alignment files
 Functions by Zach Zbinden and Tyler Chafin"""
+
+#Function to remove samples from a popmap dict, given a list of valid samples (e.g. those to retain)
+def cleanPopmap(popmap, names):
+	ret = copy.deepcopy(popmap)
+	to_remove = list()
+	for ind in popmap:
+		if ind not in names:
+			to_remove.append(ind)
+	for rem in sorted(to_remove, reverse=True):
+		del ret[rem]
+
+	return(ret)
 
 #function reads a tab-delimited popmap file and return dictionary of assignments
 def parsePopmap(popmap):
@@ -31,7 +44,7 @@ def parsePopmap(popmap):
 	else:
 		raise FileNotFoundError("File %s not found!"%popmap)
 
-		
+
 #Function to write an alignment as DICT to NEXUS
 def dict2nexus(nex, aln):
 	with open(nex, 'w') as fh:
