@@ -69,3 +69,7 @@ You can control which populations are included by sampleBiMarkers using the --in
 ```./sampleBiMarkers.py -i example.input -s 2 --include Population1,Population3,Population4```
 
 Be sure that your populations are spelled correctly, and separated by commas (with NO spaces). 
+
+One helpful tip to see a short list of your population codes, is to type the following bash command, replacing $POPMAP with the name of your popmap file:
+
+```cat $POPMAP | awk '{print $2}' | sort | uniq```
