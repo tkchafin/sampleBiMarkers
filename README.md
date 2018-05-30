@@ -1,7 +1,7 @@
 # sampleBiMarkers
 Code for sampling bi-allelic markers from samples or populations for running PhyloNet's MLE_biMarkers. Feel free to use this code however you see fit.
 
-Requires Python 3. 
+Code has been tested and seems to create valid input files. Requires Python 3. 
 
 ### How to use
 To view the help menu, call the script using the <-h,--help> argument:
