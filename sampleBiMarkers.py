@@ -138,7 +138,7 @@ def main():
 
 		#Finally, sample alleles from pops.
 		outputFinal = collections.OrderedDict()
-		outputAssign = dict()
+		outputAssign = collections.OrderedDict()
 		for pop in popFinal:
 			for i in range(0,params.sample):
 				name=pop + "_" + str(i)
@@ -162,7 +162,7 @@ def main():
 		#Convert to numeric format...
 		outputFinal_formatted = collections.OrderedDict()
 		for ind in outputFinal:
-			print(ind,", Nucs:",outputFinal[ind][0:10])
+			#print(ind,", Nucs:",outputFinal[ind][0:10])
 			outputFinal_formatted[ind] = list()
 
 		if not params.allowM:
@@ -177,9 +177,45 @@ def main():
 				if not params.allowM:
 					continue
 			numeric = seq.nucs2numeric(this_column)
-			print(this_column)
-			print(numeric)
-			sys.exit()
+			k=0
+			for ind in outputFinal:
+				outputFinal_formatted[ind].append(numeric[k])
+				k+=1
+		outputFinal.clear()
+
+		#output alignment to NEXUS
+		#for ind in outputFinal_formatted:
+			#print(ind,", Nucs:",outputFinal_formatted[ind][0:10])
+		aln.dict2nexus(params.out, outputFinal_formatted)
+
+		#Append MLE_BiMarkers skeleton command to NEXUS file
+		print("Writing PHYLONET block to Nexus file...")
+		with open(params.out, 'a') as fh:
+			try:
+				line1 = "BEGIN PHYLONET;\n"
+				fh.write(line1)
+				taxalist = ",".join(list(outputAssign))
+				taxamap = ""
+				popGroup = dict()
+				for sampleID, popID in outputAssign.items():
+					if popID not in popGroup:
+						popGroup[popID] = list()
+					popGroup[popID].append(sampleID)
+				first = True
+				for popID in popGroup.keys():
+					if first:
+						taxamap = popID + ":" + ",".join(popGroup[popID])
+						first = False
+					else:
+						taxamap += ";" + popID + ":" + ",".join(popGroup[popID])
+				#print(taxamap)
+				line2 = "MLE_BiMarkers -taxa (" + taxalist + ") -tm <" + taxamap + ">;\nEND;\n"
+				fh.write(line2)
+			except IOError:
+				print("Could not read file ",params.out)
+				sys.exit(1)
+			finally:
+				fh.close()
 
 
 	else:
