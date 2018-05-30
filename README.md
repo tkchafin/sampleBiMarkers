@@ -54,3 +54,16 @@ The final output is a NEXUS file formatted numerically (where 0=major allele; 1=
 
 Note that this script was written quickly, and is not terribly efficient nor does it implement robust error checking/reporting. If you have any issues with it, please email me directly at tkchafin@uark.edu
 
+### Input requirements
+Alignments of SNPs can be input using PHYLIP or FASTA format. You will need to specify how these samples are partitioned into species/populations/groups/etc using a tab-delimited 'population map', which should be formatted where column1 is the sample ID (exactly matching a header from the PHYLIP or FASTA file) and column 2 is a population ID:
+```
+SampleA	Population1
+SampleB	Population1
+SampleC	Population2
+...
+...
+...
+```
+You can control which populations are included by sampleBiMarkers using the --include or --exclude flags. For example, to sample 2 alleles each from only (and create output for) Population1, Population3, and Population4:
+```./sampleBiMarkers.py -i example.input -s 2 --include Population1,Population3,Population4```
+Be sure that your populations are spelled correctly, and separated by commas (with NO spaces). 
